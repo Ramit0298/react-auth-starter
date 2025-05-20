@@ -21,7 +21,7 @@ export const SignUpPage = () => {
         password,
       });
       setToken(response.data.token);
-      navigate("/please-verify");
+      navigate(`/please-verify?email=${encodeURIComponent(email)}`);
     } catch (err) {
       if (err.response) {
         setError(err.response.data.error);

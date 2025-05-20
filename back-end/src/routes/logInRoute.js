@@ -1,6 +1,12 @@
-import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
+import {
+  AuthenticationDetails,
+  CognitoUserPool,
+  CognitoUserAttribute,
+  CognitoUser,
+} from "amazon-cognito-identity-js";
 import { getDbConnection } from "../db";
+import { awsUserPool } from "../util/awsUserPool";
 
 export const logInRoute = {
   path: "/api/login",
@@ -8,42 +14,43 @@ export const logInRoute = {
   handler: async (req, res) => {
     const { email, password } = req.body;
 
-    const db = getDbConnection("react-auth-db");
-    const user = await db.collection("users").findOne({ email });
+    new CognitoUser({ Username: email, Pool: awsUserPool }).authenticateUser(
+      new AuthenticationDetails({
+        Username: email,
+        Password: password,
+      }),
+      {
+        onSuccess: async (result) => {
+          const db = getDbConnection("react-auth-db");
+          const user = await db.collection("users").findOne({ email });
+          const { _id: id, info, isVerified } = user;
 
-    if (!user) {
-      return res.status(401).json({
-        error: "Invalid email or password",
-      });
-    }
+          jwt.sign(
+            {
+              id,
+              email,
+              info,
+              isVerified,
+            },
+            process.env.JWT_SECRET,
+            {
+              expiresIn: "1d",
+            },
+            (err, token) => {
+              if (err) {
+                res.status(500).json(err);
+              }
 
-    const { _id: id, passwordHash, info, isVerified } = user;
-    const isPasswordValid = await bcrypt.compare(password, passwordHash);
-
-    if (isPasswordValid) {
-      jwt.sign(
-        {
-          id,
-          email,
-          info,
-          isVerified,
+              res.status(200).json({ token });
+            }
+          );
         },
-        process.env.JWT_SECRET,
-        {
-          expiresIn: "1d",
+        onFailure: (err) => {
+          res.status(401).json({
+            error: "Invalid email or password",
+          });
         },
-        (err, token) => {
-          if (err) {
-            res.status(500).json(err);
-          }
-
-          res.status(200).json({ token });
-        }
-      );
-    } else {
-      res.status(401).json({
-        error: "Invalid email or password",
-      });
-    }
+      }
+    );
   },
 };
