@@ -1,42 +1,30 @@
-import bcrypt from "bcrypt";
-import { getDbConnection } from "../db";
+import { CognitoUser } from "amazon-cognito-identity-js";
+import { awsUserPool } from "../util/awsUserPool";
 
 export const resetPasswordRoute = {
   path: "/api/users/:passwordResetCode/reset-password",
   method: "put",
   handler: async (req, res) => {
     const { passwordResetCode } = req.params;
-    const { newPassword } = req.body;
+    const { email, newPassword } = req.body;
 
-    if (!newPassword) {
-      return res.status(400).json({ error: "New password is required" });
-    }
-
-    try {
-      const db = getDbConnection("react-auth-db");
-      //   const user = await db.collection("users").findOne({ passwordResetCode });
-
-      //   if (!user) {
-      //     return res.status(404).json({ error: "Invalid password reset code" });
-      //   }
-
-      const hashedPassword = await bcrypt.hash(newPassword, 10);
-      const result = await db.collection("users").findOneAndUpdate(
-        { passwordResetCode },
-        {
-          $set: { passwordHash: hashedPassword },
-          $unset: { passwordResetCode: "" },
-        },
-        { returnDocument: "after" }
-      );
-
-      if (!result) {
-        return res.status(404).json({ error: "Invalid password reset code" });
-      }
-      return res.status(200).json({ message: "Password reset successfully" });
-    } catch (error) {
-      console.error(error);
-      return res.status(500).json({ error: "Internal server error" });
-    }
+    new CognitoUser({
+      Username: email,
+      Pool: awsUserPool,
+    }).confirmPassword(passwordResetCode, newPassword, {
+      onSuccess: () => {
+        console.log("Password reset successful");
+        return res.status(200).json({
+          message: "Password reset successful",
+        });
+      },
+      onFailure: (err) => {
+        console.error("Error resetting password:", err);
+        return res.status(500).json({
+          error: "Error resetting password",
+          details: err,
+        });
+      },
+    });
   },
 };
