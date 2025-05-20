@@ -20,11 +20,13 @@ export const resetPasswordRoute = {
       //     return res.status(404).json({ error: "Invalid password reset code" });
       //   }
 
-      const hashedPassword = await bcrypt.hash(newPassword, 10);
+      const newSalt = uuid();
+      const pepper = process.env.PEPPER_STRING;
+      const hashedPassword = await bcrypt.hash(salt + newPassword + pepper, 10);
       const result = await db.collection("users").findOneAndUpdate(
         { passwordResetCode },
         {
-          $set: { passwordHash: hashedPassword },
+          $set: { passwordHash: hashedPassword, salt: newSalt },
           $unset: { passwordResetCode: "" },
         },
         { returnDocument: "after" }

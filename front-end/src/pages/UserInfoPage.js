@@ -119,6 +119,10 @@ export const UserInfoPage = () => {
         <input onChange={(e) => setBio(e.target.value)} value={bio} />
       </label>
       <hr />
+      {/* Instead of Line 35 to Line 44 in the updateUserInfoRoute.js, if done like this, then it can be bypassed through Postman */}
+      {/* <button disabled={!isVerified} onClick={saveChanges}>
+        Save Changes
+      </button> */}
       <button onClick={saveChanges}>Save Changes</button>
       <button onClick={resetValues}>Reset Values</button>
       <button onClick={logOut}>Log Out</button>

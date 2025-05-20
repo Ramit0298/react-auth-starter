@@ -46,8 +46,8 @@ export const LogInPage = () => {
       setToken(response.data.token);
       navigate("/");
     } catch (err) {
-      if (err.response) {
-        setError(err.response.data.error);
+      if (err) {
+        setError(err.message);
       } else {
         setError("An error occurred. Please try again.");
       }
