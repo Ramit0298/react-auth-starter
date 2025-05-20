@@ -25,6 +25,13 @@ export const updateUserInfoRoute = {
         return res.status(401).json({ error: "Invalid token" });
       }
       const { id, isVerified } = decoded;
+
+      // The check should always be done at the server level
+      // to ensure that the user is authorized to update their own info
+      // Client-side checks are not enough
+      // because a malicious user could modify the client code
+      // They can use postman or curl to send requests
+      // directly to the server
       if (id !== userId) {
         return res
           .status(403)
